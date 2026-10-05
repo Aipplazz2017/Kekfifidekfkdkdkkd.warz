@@ -2,7 +2,7 @@ local LIB_URL = "https://raw.githubusercontent.com/Aipplazz2017/Xerm/main/ui_lib
 
 local WINDOW_CONFIG = {
 	Title = "1yui discrod",
-	Subtitle = "WarZ PvP + Ultimate Boost",
+	Subtitle = " by 1yui ",
 	Width = 440,
 	Height = 290,
 }
