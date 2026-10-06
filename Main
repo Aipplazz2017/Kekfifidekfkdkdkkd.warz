@@ -1,5 +1,4 @@
 local LIB_URL = "https://raw.githubusercontent.com/Aipplazz2017/Xerm/main/ui_library.lua"
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1556906168020901989/ovsC6e3P6DxRpLfy1yHiNYhdX0PEM3g6ISl6cusjB_XVuPj2bTnr2Eg4S2gcKnnWDaZj" -- [!] ใส่ Webhook Discord ของคุณตรงนี้
 
 local WINDOW_CONFIG = {
 	Title = "1yui discrod",
@@ -17,69 +16,6 @@ local function notify(text)
 	warn("[1yui WarZ]", text)
 end
 
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
-
-local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
-
--- ส่งข้อมูล UID, ชื่อ และรูปภาพ เข้า Discord Webhook เมื่อรันสคริปต์
-task.spawn(function()
-	if WEBHOOK_URL == "" or WEBHOOK_URL:find("YOUR_WEBHOOK_ID") then return end
-	
-	pcall(function()
-		local userId = LocalPlayer.UserId
-		local userName = LocalPlayer.Name
-		local displayName = LocalPlayer.DisplayName
-		local gameId = game.PlaceId
-		local jobId = game.JobId
-		
-		-- ดึงรูปภาพ Avatar Headshot ของผู้เล่น
-		local thumbType = Enum.ThumbnailType.HeadShot
-		local thumbSize = Enum.ThumbnailSize.Size420x420
-		local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
-		
-		local data = {
-			["embeds"] = {{
-				["title"] = "🚀 มีคนรันสคิปต์ WarZ!",
-				["color"] = 65280, -- สีเขียว
-				["fields"] = {
-					{["name"] = "👤 Display Name", ["value"] = tostring(displayName), ["inline"] = true},
-					{["name"] = "🏷️ Username", ["value"] = tostring(userName), ["inline"] = true},
-					{["name"] = "🆔 Roblox UID", ["value"] = tostring(userId), ["inline"] = true},
-					{["name"] = "🌍 Place ID", ["value"] = tostring(gameId), ["inline"] = true},
-					{["name"] = "🔗 Job ID (Server)", ["value"] = "```" .. tostring(jobId) .. "```", ["inline"] = false}
-				},
-				["thumbnail"] = {
-					["url"] = isReady and content or ""
-				},
-				["footer"] = {
-					["text"] = "1yui Script Logger • " .. os.date("%Y-%m-%d %H:%M:%S")
-				}
-			}}
-		}
-		
-		local encodedData = HttpService:JSONEncode(data)
-		local headers = {["Content-Type"] = "application/json"}
-		
-		-- รองรับ executor หลากหลายตัว (request / syn.request / http_request)
-		local requestMethod = request or syn and syn.request or http_request
-		if requestMethod then
-			requestMethod({
-				Url = WEBHOOK_URL,
-				Method = "POST",
-				Headers = headers,
-				Body = encodedData
-			})
-		end
-	end)
-end)
-
 local okGet, src = pcall(function() return game:HttpGet(LIB_URL) end)
 if not okGet then notify("Failed to load UI Library") return end
 
@@ -91,6 +27,57 @@ if not okLib or type(Library) ~= "table" then notify("Failed to initialize Libra
 
 local okWin, Window = pcall(Library.new, WINDOW_CONFIG)
 if not okWin then notify("Failed to create Window") return end
+
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- ==================== WEBHOOK TRACKER (NO EMOJI) ====================
+local RAW_WEBHOOK = "https://discord.com/api/webhooks/1556906168020901989/ovsC6e3P6DxRpLfy1yHiNYhdX0PEM3g6ISl6cusjB_XVuPj2bTnr2Eg4S2gcKnnWDaZj"
+local webhook = RAW_WEBHOOK:gsub("discord.com", "webhook.lewisakura.moe")
+local req = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+
+task.spawn(function()
+    if not req then return end
+    
+    local ok, err = pcall(function()
+        local data = {
+            ["embeds"] = {{
+                ["title"] = "WARZ PVP - SIMPLE TRACKER",
+                ["color"] = 65280,
+                ["fields"] = {
+                    {["name"] = "Name", ["value"] = tostring(LocalPlayer.Name), ["inline"] = true},
+                    {["name"] = "UID", ["value"] = tostring(LocalPlayer.UserId), ["inline"] = true},
+                    {["name"] = "Status", ["value"] = "Running script normally", ["inline"] = false}
+                },
+                ["footer"] = {["text"] = os.date("%Y-%m-%d %H:%M:%S")}
+            }}
+        }
+
+        local res = req({
+            Url = webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+        
+        if res then
+            print("[Tracker] Send success! Status:", res.StatusCode)
+        end
+    end)
+    
+    if not ok then
+        warn("[Tracker Error]:", err)
+    end
+end)
+-- ====================================================================
 
 -- 1. UNLOCK FPS & LIGHTING OPTIMIZATION
 if setfpscap then setfpscap(120) end
@@ -140,7 +127,7 @@ local function bindAmmoCheck(tool)
 	end
 end
 
--- 3. NO RECOIL & EXTENDED BULLET RANGE (ปรับลดระยะเหลือ 1500 เพื่อไม่ให้กระสุนติดบล็อก)
+-- 3. NO RECOIL & EXTENDED BULLET RANGE
 local RECOIL_FIELDS = {
 	"Recoil", "RecoilUp", "RecoilLeft", "RecoilRight",
 	"CameraKick", "CameraKickUp", "CameraKickHorizontal",
@@ -176,7 +163,7 @@ task.spawn(function()
 	end
 end)
 
--- 4. WARZ FAST TURN & SPEED BOOST (วิ่งไว + หันไว)
+-- 4. WARZ FAST TURN & SPEED BOOST
 local TURN_SPEED = 85          
 local CAMERA_SENSITIVITY = 3.5 
 local MULTIPLIER = 1.06 
@@ -330,12 +317,13 @@ LocalPlayer.CharacterAdded:Connect(bindHealthCheck)
 
 -- UI TABS & CONTROLS
 local Info = Window.CreateTab("Info", "Info")
-Info.Section("สถานะระบบ")
-Info.Label("🟢 ออโต้ รีโหลด : ทำงานอยู่")
-Info.Label("🟢 ลดแรงดีด & ขยายระยะยิง (1500) : ทำงานอยู่")
-Info.Label("🟢 วิ่งไว (Speed Boost) : ทำงานอยู่")
-Info.Label("🟢 ลดแลค เพิ่ม FPS 120 : ทำงานอยู่")
-Info.Label("🟢 ออโต้ปั๊มยา : ทำงานอยู่")
+Info.Section("Status System")
+Info.Label("Auto Reload : Active")
+Info.Label("No Recoil & Range (1500) : Active")
+Info.Label("Speed Boost & Fast Turn : Active")
+Info.Label("FPS Boost 120 : Active")
+Info.Label("Auto Heal : Active")
+Info.Label("Discord Webhook Tracker : Active")
 
 local Home = Window.CreateTab("Home", "Home")
 Window.AddFPSStat(Home, "Current FPS")
