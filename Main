@@ -86,7 +86,7 @@ local function bindAmmoCheck(tool)
 	end
 end
 
--- 3. NO RECOIL & EXTENDED BULLET RANGE (ปรับเพิ่มเวลาสแกนเป็น 5 วินาที เพื่อแก้ปัญหาอาการกระตุก)
+-- 3. NO RECOIL & EXTENDED BULLET RANGE (ปรับลดระยะเหลือ 1500 เพื่อไม่ให้กระสุนติดบล็อก)
 local RECOIL_FIELDS = {
 	"Recoil", "RecoilUp", "RecoilLeft", "RecoilRight",
 	"CameraKick", "CameraKickUp", "CameraKickHorizontal",
@@ -95,7 +95,7 @@ local RECOIL_FIELDS = {
 }
 
 local RANGE_FIELDS = {
-	"Range", "MaxDistance", "Distance", "BulletRange", "FireRange"
+	"Range", "MaxDistance", "Distance", "BulletRange", "FireRange", "MaxRange", "BulletDistance"
 }
 
 task.spawn(function()
@@ -111,8 +111,8 @@ task.spawn(function()
 						end
 						for _, key in ipairs(RANGE_FIELDS) do
 							local currentVal = rawget(v, key)
-							if currentVal ~= nil and type(currentVal) == "number" and currentVal < 9999 then
-								rawset(v, key, 99999)
+							if currentVal ~= nil and type(currentVal) == "number" and currentVal > 0 and currentVal < 1500 then
+								rawset(v, key, 1500)
 							end
 						end
 					end
@@ -278,7 +278,7 @@ LocalPlayer.CharacterAdded:Connect(bindHealthCheck)
 local Info = Window.CreateTab("Info", "Info")
 Info.Section("สถานะระบบ")
 Info.Label("🟢 ออโต้ รีโหลด : ทำงานอยู่")
-Info.Label("🟢 ลดแรงดีด & ขยายระยะยิงไกล : ทำงานอยู่")
+Info.Label("🟢 ลดแรงดีด & ขยายระยะยิง (1500) : ทำงานอยู่")
 Info.Label("🟢 วิ่งไว (Speed Boost) : ทำงานอยู่")
 Info.Label("🟢 ลดแลค เพิ่ม FPS 120 : ทำงานอยู่")
 Info.Label("🟢 ออโต้ปั๊มยา : ทำงานอยู่")
