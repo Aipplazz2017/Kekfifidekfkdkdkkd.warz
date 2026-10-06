@@ -1,4 +1,4 @@
-local LIB_URL = "https://raw.githubusercontent.com/Aipplazz2017/Xerm/main/ui_library.lua"
+Local LIB_URL = "https://raw.githubusercontent.com/Aipplazz2017/Xerm/main/ui_library.lua"
 
 local WINDOW_CONFIG = {
 	Title = "1yui discrod",
@@ -10,10 +10,10 @@ local WINDOW_CONFIG = {
 local function notify(text)
 	pcall(function()
 		game:GetService("StarterGui"):SetCore("SendNotification", {
-			Title = "1yui discrod", Text = tostring(text), Duration = 5,
+			Title = "1yui WarZ", Text = tostring(text), Duration = 5,
 		})
 	end)
-	warn("[1yui]", text)
+	warn("[1yui WarZ]", text)
 end
 
 local okGet, src = pcall(function() return game:HttpGet(LIB_URL) end)
@@ -67,33 +67,7 @@ pcall(function()
 	clearAtmosphere(Workspace)
 end)
 
--- 2. OPTIMIZED NO RECOIL
-local RECOIL_FIELDS = {
-	"Recoil", "RecoilUp", "RecoilLeft", "RecoilRight",
-	"CameraKick", "CameraKickUp", "CameraKickHorizontal",
-	"VisualRecoil", "AimRecoilMultiplier",
-	"Spread", "MinSpread", "MaxSpread", "BaseSpread"
-}
-
-task.spawn(function()
-	while task.wait(3) do
-		if getgc then
-			pcall(function()
-				for _, v in pairs(getgc(true)) do
-					if type(v) == "table" then
-						for _, key in ipairs(RECOIL_FIELDS) do
-							if rawget(v, key) ~= nil then
-								rawset(v, key, 0)
-							end
-						end
-					end
-				end
-			end)
-		end
-	end
-end)
-
--- 3. AUTO RELOAD & AUTO COMBINE
+-- 2. AUTO RELOAD SYSTEM
 local ammoConnection = nil
 local function bindAmmoCheck(tool)
 	if not tool then return end
@@ -104,27 +78,55 @@ local function bindAmmoCheck(tool)
 			if newValue <= 0 then
 				local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 				local reloadRemote = remotes and remotes:FindFirstChild("ReloadRequest")
-				if reloadRemote then reloadRemote:FireServer() end
+				if reloadRemote then 
+					reloadRemote:FireServer()
+				end
 			end
 		end)
 	end
 end
 
-_G.AutoCombine = true
+-- 3. NO RECOIL & EXTENDED BULLET RANGE (ปรับเพิ่มเวลาสแกนเป็น 5 วินาที เพื่อแก้ปัญหาอาการกระตุก)
+local RECOIL_FIELDS = {
+	"Recoil", "RecoilUp", "RecoilLeft", "RecoilRight",
+	"CameraKick", "CameraKickUp", "CameraKickHorizontal",
+	"VisualRecoil", "AimRecoilMultiplier",
+	"Spread", "MinSpread", "MaxSpread", "BaseSpread"
+}
+
+local RANGE_FIELDS = {
+	"Range", "MaxDistance", "Distance", "BulletRange", "FireRange"
+}
+
 task.spawn(function()
-	while _G.AutoCombine do
-		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-		local combineRemote = remotes and remotes:FindFirstChild("CombineMags")
-		if combineRemote then
-			combineRemote:FireServer(3)
+	while task.wait(5) do
+		if getgc then
+			pcall(function()
+				for _, v in pairs(getgc(true)) do
+					if type(v) == "table" then
+						for _, key in ipairs(RECOIL_FIELDS) do
+							if rawget(v, key) ~= nil then
+								rawset(v, key, 0)
+							end
+						end
+						for _, key in ipairs(RANGE_FIELDS) do
+							local currentVal = rawget(v, key)
+							if currentVal ~= nil and type(currentVal) == "number" and currentVal < 9999 then
+								rawset(v, key, 99999)
+							end
+						end
+					end
+				end
+			end)
 		end
-		task.wait(10)
 	end
 end)
 
--- 4. WARZ PVP MOVEMENT & SENSITIVITY
+-- 4. WARZ FAST TURN & SPEED BOOST (วิ่งไว + หันไว)
 local TURN_SPEED = 85          
 local CAMERA_SENSITIVITY = 3.5 
+local MULTIPLIER = 1.06 
+local BASE_SPEED = 16   
 
 local function applySensitivity()
 	UserInputService.MouseDeltaSensitivity = CAMERA_SENSITIVITY
@@ -132,7 +134,7 @@ end
 applySensitivity()
 UserInputService:GetPropertyChangedSignal("MouseDeltaSensitivity"):Connect(applySensitivity)
 
-local function setupFastTurn(char)
+local function setupSpeedAndTurn(char)
 	local humanoid = char:WaitForChild("Humanoid", 10)
 	local hrp = char:WaitForChild("HumanoidRootPart", 10)
 
@@ -151,13 +153,19 @@ local function setupFastTurn(char)
 			local targetRotation = CFrame.Angles(0, moveAngle, 0)
 			local targetCFrame = CFrame.new(hrp.Position) * targetRotation
 			hrp.CFrame = hrp.CFrame:Lerp(targetCFrame, math.clamp(TURN_SPEED * deltaTime, 0, 1))
+
+			if humanoid.WalkSpeed > 8 then
+				local extraSpeed = (BASE_SPEED * (MULTIPLIER - 1)) * deltaTime
+				local moveVector = humanoid.MoveDirection.Unit * extraSpeed
+				hrp.CFrame = hrp.CFrame + moveVector
+			end
 		end
 	end)
 end
 
 local function onCharacterAdded(char)
 	task.wait(0.2)
-	setupFastTurn(char)
+	setupSpeedAndTurn(char)
 	
 	char.ChildAdded:Connect(function(child)
 		if child:IsA("Tool") then bindAmmoCheck(child) end
@@ -216,7 +224,7 @@ Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(function(char) createHealthESP(char) end)
 end)
 
--- 6. AUTO HEAL (ความเร็ว 0.003 รัวๆ ไม่แลค)
+-- 6. AUTO HEAL (0.003)
 local ITEM_NAME = "BandagesDX"
 local HEALTH_THRESHOLD = 0.74
 local ITEM_COOLDOWN = 0.003
@@ -268,11 +276,12 @@ LocalPlayer.CharacterAdded:Connect(bindHealthCheck)
 
 -- UI TABS & CONTROLS
 local Info = Window.CreateTab("Info", "Info")
-Info.Section("System Status")
-Info.Label("🟢 No Recoil  Auto Reload : Running")
-Info.Label("🟢 Auto Combine & Auto Heal (Fast 0.003) : Running")
-Info.Label("🟢 WarZ Fast Turn : Running")
-Info.Label("🟢 Anti-Lag  120 FPS : Running")
+Info.Section("สถานะระบบ")
+Info.Label("🟢 ออโต้ รีโหลด : ทำงานอยู่")
+Info.Label("🟢 ลดแรงดีด & ขยายระยะยิงไกล : ทำงานอยู่")
+Info.Label("🟢 วิ่งไว (Speed Boost) : ทำงานอยู่")
+Info.Label("🟢 ลดแลค เพิ่ม FPS 120 : ทำงานอยู่")
+Info.Label("🟢 ออโต้ปั๊มยา : ทำงานอยู่")
 
 local Home = Window.CreateTab("Home", "Home")
 Window.AddFPSStat(Home, "Current FPS")
@@ -305,4 +314,4 @@ Home.Button("Server Hop", function()
 end)
 
 Window.AddSettingsTab("Settings")
-notify("Loaded successfully (Gun fixed & Stable)")
+notify("WarZ Script Ready!")
