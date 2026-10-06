@@ -1,4 +1,4 @@
-Local LIB_URL = "https://raw.githubusercontent.com/Aipplazz2017/Xerm/main/ui_library.lua"
+local LIB_URL = "https://raw.githubusercontent.com/Aipplazz2017/Xerm/main/ui_library.lua"
 
 local WINDOW_CONFIG = {
 	Title = "1yui discrod",
