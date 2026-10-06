@@ -314,4 +314,9 @@ Home.Button("Server Hop", function()
 end)
 
 Window.AddSettingsTab("Settings")
+notify("WarZ  Script Ready!")
+portService:Teleport(game.PlaceId, LocalPlayer)
+end)
+
+Window.AddSettingsTab("Settings")
 notify("WarZ Script Ready!")
